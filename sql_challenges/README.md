@@ -1,0 +1,1 @@
+Lessons 6 and 7 in https://sqlbolt.com/
