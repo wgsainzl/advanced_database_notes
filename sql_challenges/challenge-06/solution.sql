@@ -1,0 +1,95 @@
+CREATE TABLE PRODUCT (
+    PRODUCT_ID NUMBER(10) PRIMARY KEY,
+    PRODUCT_NAME VARCHAR2(30) NOT NULL,
+    PACKAGE_ID NUMBER(10),
+    CURRENT_INVENTORY_COUNT NUMBER(5) DEFAULT 0,
+    STORE_COST NUMBER(10,2),
+    SALE_PRICE NUMBER(10,2),
+    LAST_UPDATE_DATE DATE DEFAULT SYSDATE,
+    UPDATED_BY_USER VARCHAR2(30),
+    PET_FLAG VARCHAR2(1),
+
+    CONSTRAINT FK_PRODUCT_PACKAGE
+        FOREIGN KEY (PACKAGE_ID)
+        REFERENCES PRODUCT(PRODUCT_ID),
+
+    CONSTRAINT CHK_PET_FLAG 
+        CHECK (PET_FLAG IN ('Y','N'))
+);
+
+CREATE TABLE PET_CARE_LOG (
+    PRODUCT_ID NUMBER(10),
+    LOG_DATETIME DATE,
+    CREATED_BY_USER VARCHAR2(30),
+    LOG_TEXT VARCHAR2(500),
+    LAST_UPDATE_DATETIME DATE,
+    UPDATED_BY_USER NUMBER(20),
+
+    CONSTRAINT PK_PET_CARE_LOG 
+        PRIMARY KEY (PRODUCT_ID, LOG_DATETIME),
+
+    CONSTRAINT FK_PET_LOG_PRODUCT
+        FOREIGN KEY (PRODUCT_ID)
+        REFERENCES PRODUCT(PRODUCT_ID)
+);
+
+CREATE OR REPLACE TRIGGER TRG_BI_PET_CARE_LOG
+BEFORE INSERT ON PET_CARE_LOG
+FOR EACH ROW
+BEGIN
+    -- Asignar fecha y hora actual
+    :NEW.LAST_UPDATE_DATETIME := SYSDATE;
+
+    -- Asignar usuario actual
+    :NEW.CREATED_BY_USER := USER;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(
+            -20001,
+            'Error in TRG_BI_PET_CARE_LOG: ' || SQLERRM
+        );
+END;
+
+CREATE OR REPLACE TRIGGER TRG_BU_PET_CARE_LOG
+BEFORE UPDATE ON PET_CARE_LOG
+FOR EACH ROW
+BEGIN
+    -- Validar que el usuario actual sea el mismo que el que creó/modificó el registro
+    IF :OLD.CREATED_BY_USER != USER THEN
+        RAISE_APPLICATION_ERROR(
+            -20002,
+            'You are not allowed to update this record. Only the original user can modify it.'
+        );
+    END IF;
+
+    -- Si pasa la validación, actualizar la fecha
+    :NEW.LAST_UPDATE_DATETIME := SYSDATE;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(
+            -20003,
+            'Error in TRG_BU_PET_CARE_LOG: ' || SQLERRM
+        );
+END;
+
+CREATE OR REPLACE TRIGGER TRG_BD_PET_CARE_LOG
+BEFORE UPDATE ON PET_CARE_LOG
+FOR EACH ROW
+BEGIN
+    -- Validar que el usuario actual sea el mismo que el que creó/modificó el registro
+    IF 'JOEMANAGER' != USER THEN
+        RAISE_APPLICATION_ERROR(
+            -20004,
+            'Delete not allowed. Only JOEMANAGER can delete records.'
+        );
+    END IF;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(
+            -20005,
+            'Error in TRG_BD_PET_CARE_LOG: ' || SQLERRM
+        );
+END;
