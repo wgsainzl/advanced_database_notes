@@ -111,7 +111,7 @@ SAVEPOINT sp_after_alice;
 -- 3. Deduct $25 from Charlie's balance
 UPDATE ACCOUNTS
 SET balance = balance - 50
-WHERE account_id = 3
+WHERE account_id = 3;
 
 -- 4. Rollback to savepoint
 ROLLBACK TO SAVEPOINT sp_after_alice;
@@ -194,16 +194,23 @@ SELECT * FROM accounts WHERE account_id = 3;
 --   b) Create the appointment record
 --   c) Send a confirmation notification
 -- Which of these should be inside the transaction? Which should be outside? Why?
--- Inside should be the time slot reservation and the appointment record creation, both should be dependent of each other.
--- Outside should be the confirmation notification, it depends of an external agent.
+-- The time slot reservation and the appointment record creation should be inside the transaction.
+-- They depend on each other, because we should not reserve a slot without creating the appointment,
+-- and we should not create an appointment without reserving the slot.
+-- The confirmation notification should be outside the transaction because it depends on an external system.
+-- The database transaction should commit first, then the notification can be sent.
 
 -- Q2: Your stored procedure calls COMMIT at the end.
 -- A developer calls your procedure from inside their own larger transaction.
 -- What problem does this create?
--- The problem is if something was wrong in their own transaction, as my procedure is committing, it won't be able to rollback.
+-- The problem is that the procedure commits not only its own changes, but also any previous changes
+-- in the caller's larger transaction. If something goes wrong later, the caller cannot roll back
+-- the full transaction anymore.
 
 -- Q3: You have a function called calculate_copay() and a procedure called post_payment().
 -- A colleague wants to use calculate_copay() inside a SELECT statement.
 -- Can they? Can they do the same with post_payment()? Why or why not?
--- Functions can be used, as they return values and do not change the database.
--- Procedures can't be used, as they do change the database.
+-- They can use calculate_copay() inside a SELECT statement because a function returns a value.
+-- They should not use post_payment() inside a SELECT statement because it is a procedure,
+-- and procedures are meant to perform actions instead of returning values to a query.
+-- Also, post_payment() probably changes database data, which should not happen inside a SELECT.
