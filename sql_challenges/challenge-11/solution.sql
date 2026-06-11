@@ -1,7 +1,7 @@
 -- ============================================================
 -- Lesson 03: SQLAlchemy ORM + Alembic Migrations
 -- File: 01_setup_schema.sql
--- Purpose: V1 Schema — teams, users, tasks
+-- Purpose: V1 Schema — teams, users, tasks.
 --
 -- Run this in your FreeSQL worksheet to create the base tables.
 -- ============================================================
